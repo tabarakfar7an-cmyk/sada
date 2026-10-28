@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>صدى — خريطة صوتية حيّة للمدينة</title>
+  <meta name="description" content="صدى: خريطة صوتية تفاعلية لعمّان. كل نقطة عليها صوت مدته ٣٠ ثانية سجّله شخص من حيّه.">
+  <meta name="theme-color" content="#030407">
+  <meta property="og:title" content="صدى — خريطة صوتية حيّة للمدينة">
+  <meta property="og:description" content="اسمع المدينة بصوت ناسها: أذان الفجر، بسطة خضرة، مطر على سطح، ضحك أطفال بزقاق.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23030407'/%3E%3Ccircle cx='32' cy='32' r='7' fill='%23D4FF24'/%3E%3Ccircle cx='32' cy='32' r='15' fill='none' stroke='%231558C9' stroke-width='4'/%3E%3Ccircle cx='32' cy='32' r='25' fill='none' stroke='%231558C9' stroke-width='3' opacity='.55'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- الخريطة: هي الصفحة كلها -->
+<div id="map" role="application" aria-label="خريطة عمّان الصوتية"></div>
+<div class="tint" aria-hidden="true"></div>
+
+<!-- العمود الجانبي: بحث + لوحة -->
+<div class="col">
+  <form class="searchbar" id="searchForm" role="search" autocomplete="off">
+    <button type="button" class="icon-btn" id="menuBtn" aria-label="عن صدى">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <input id="q" type="search" placeholder="ابحث عن حيّ أو صوت…" aria-label="ابحث عن حيّ أو صوت" enterkeyhint="search">
+    <button type="button" class="icon-btn" id="clearQ" hidden aria-label="مسح البحث">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <button type="submit" class="icon-btn go" aria-label="بحث">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3"/></svg>
+    </button>
+  </form>
+
+  <aside class="panel" id="panel" aria-live="polite">
+    <button class="sheet-handle" id="sheetHandle" type="button" aria-label="توسيع أو تصغير اللوحة"><i></i></button>
+    <div class="panel-body" id="panelBody"></div>
+    <div class="mini" id="mini" hidden></div>
+    <button class="collapse" id="collapseBtn" type="button" aria-label="إخفاء اللوحة أو إظهارها">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+  </aside>
+</div>
+
+<!-- شرائح التصفية (مثل Google Maps) -->
+<div class="chips" id="chips" role="toolbar" aria-label="تصفية الأصوات"></div>
+
+<!-- أدوات الخريطة -->
+<div class="map-ctrl">
+  <div class="zoom">
+    <button type="button" id="zoomIn" aria-label="تكبير"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button type="button" id="zoomOut" aria-label="تصغير"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+  </div>
+  <button type="button" class="round" id="locateBtn" aria-label="موقعي">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+  </button>
+</div>
+
+<!-- الشريط السفلي -->
+<div class="bottom-bar">
+  <button class="pill" id="tourBtn" type="button">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+    <span id="tourLabel">جولة صوتية</span>
+  </button>
+
+  <div class="timecard" id="timeCard">
+    <div class="timecard-head"><b>خريطة الزمن</b><span>نفس الحيّ، بوقت ثاني</span></div>
+    <div class="ticks" id="ticks" role="group" aria-label="وقت اليوم"></div>
+    <input id="timeRange" type="range" min="0" max="3" step="1" value="1" aria-label="وقت اليوم">
+  </div>
+
+  <button class="fab" id="recBtn" data-open-recorder type="button">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM6 11a6 6 0 0 0 12 0M12 17v4"/></svg>
+    <span>سجّل صوتك</span>
+  </button>
+</div>
+
+<!-- ===== عن صدى ===== -->
+<dialog id="aboutDlg" class="dlg" aria-labelledby="aboutTitle">
+  <button class="icon-btn close" id="aboutClose" type="button" aria-label="إغلاق">
+    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+  </button>
+  <h2 class="serif" id="aboutTitle">عن صدى</h2>
+  <p class="muted">خريطة صوتية حيّة للمدينة. كل نقطة عليها صوت مدته ٣٠ ثانية سجّله شخص من حيّه: أذان فجر من شرفة، بسطة خضرة بالسوق، مطر على سطح، ضحك أطفال بزقاق.</p>
+  <ul class="about-list">
+    <li><b>جولة صوتية</b><span>بتنقلك بين الأحياء متل راديو المدينة.</span></li>
+    <li><b>صوت اليوم</b><span>صوت مميز بيتغيّر كل ٢٤ ساعة.</span></li>
+    <li><b>خريطة الزمن</b><span>اسمع نفس الحيّ الصبح مقابل الليل.</span></li>
+    <li><b>بطاقة مشاركة</b><span>صورة بألوان صدى مع موجة الصوت، جاهزة للستوري.</span></li>
+    <li><b>سجّل صوتك</b><span>كل مستخدم بيصير مساهم، والخريطة بتكبر لحالها.</span></li>
+  </ul>
+  <p class="fine">الخرائط © OpenStreetMap © CARTO</p>
+</dialog>
+
+<!-- ===== نافذة التسجيل ===== -->
+<dialog id="recDlg" class="dlg" aria-labelledby="recTitle">
+  <button class="icon-btn close" id="recClose" type="button" aria-label="إغلاق">
+    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+  </button>
+  <h2 class="serif" id="recTitle">سجّل صوت حيّك</h2>
+
+  <div id="recS1">
+    <p class="muted">٣٠ ثانية كحد أقصى. أذان من شرفة، بسطة بالسوق، مطر على سطح… اللي بيشبه حيّك.</p>
+    <button class="btn btn-lime btn-lg" id="recStart" type="button">ابدأ التسجيل</button>
+  </div>
+
+  <div id="recS2" hidden>
+    <div class="rec-live">
+      <div class="rec-orb" id="recOrb"></div>
+      <div class="rec-time" id="recTime" dir="ltr">0:00</div>
+    </div>
+    <div class="progress"><i id="recBar"></i></div>
+    <button class="btn btn-lime btn-lg" id="recStop" type="button">إيقاف</button>
+  </div>
+
+  <div id="recS3" hidden>
+    <audio id="recAudio" controls></audio>
+    <label class="field">عنوان الصوت
+      <input id="recName" type="text" maxlength="40" placeholder="مثلاً: بسطة خضرة بالسوق">
+    </label>
+    <label class="field">اسمك (اختياري)
+      <input id="recBy" type="text" maxlength="24" placeholder="سارة">
+    </label>
+    <div class="row">
+      <button class="btn btn-lime" id="recAdd" type="button">أضِف على الخريطة</button>
+      <button class="btn btn-ghost" id="recRetry" type="button">أعد التسجيل</button>
+    </div>
+    <p class="fine">في هذا العرض التجريبي التسجيل بيبقى على جهازك فقط. لنشر التسجيلات للجميع لازم تربطي الموقع بقاعدة بيانات (شوفي README).</p>
+  </div>
+
+  <p class="rec-msg" id="recMsg" role="alert" hidden></p>
+</dialog>
+
+<!-- ===== نافذة بطاقة المشاركة ===== -->
+<dialog id="shareDlg" class="dlg dlg-share" aria-labelledby="shareTitle">
+  <button class="icon-btn close" id="shareClose" type="button" aria-label="إغلاق">
+    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+  </button>
+  <h2 class="serif" id="shareTitle">بطاقة المشاركة</h2>
+  <canvas id="shareCanvas" width="1080" height="1920"></canvas>
+  <div class="row">
+    <button class="btn btn-lime" id="shareDownload" type="button">تنزيل الصورة</button>
+    <button class="btn btn-ghost" id="shareNative" type="button">مشاركة</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
